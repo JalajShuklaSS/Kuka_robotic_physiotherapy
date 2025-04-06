@@ -46,7 +46,7 @@ K = np.array([[intr.fx, 0, intr.ppx],
 camera_params = (intr.fx, intr.fy, intr.ppx, intr.ppy)
 tag_size = 0.050
 
-gripper_tags = {579, 580, 581, 582, 583, 584}
+gripper_tags = {579, 580, 581, 582}
 pixel_coordinates_list = []
 
 def create_pose_msg(matrix, frame_id):
@@ -99,16 +99,23 @@ while not rospy.is_shutdown():
         avg_ee_cam = np.mean(ee_poses, axis=0)
 
         if avg_ee_cam.shape == (4, 4):
-            # Visualization
+            # Visualization: green dot = calibrated gripper center, red = motion trail
             point_3d = avg_ee_cam[:3, 3]
             point_2d = K @ point_3d
             pixel_coords = point_2d[:2] / point_2d[2]
+
+            # Save history of red trail
             pixel_coordinates_list.append(pixel_coords)
             if len(pixel_coordinates_list) > 100:
                 pixel_coordinates_list.pop(0)
 
+            # Draw red trail dots
             for pt in pixel_coordinates_list:
                 cv2.circle(color_image, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
+
+            # Draw current gripper center in green
+            cv2.circle(color_image, (int(pixel_coords[0]), int(pixel_coords[1])), 5, (0, 255, 0), -1)
+
 
             # Pose in world frame
             avg_ee_base = camera_to_base @ avg_ee_cam
